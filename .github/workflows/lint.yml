@@ -11,6 +11,7 @@ jobs:
       - name: check out code
         uses: actions/checkout@v4
         with:
+          persist-credentials: false
           ref: '${{ github.ref }}'
 
       - name: Install Node
