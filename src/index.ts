@@ -50,8 +50,8 @@ export function createEvent<E extends ClientNameEvents | CustomEventsKeys>(data:
 	data: { name: E; once?: boolean };
 	run: (...args: EventContext<{ data: { name: E } }>) => any;
 }) {
-data.data.once ??= false;
-return data;
+	data.data.once ??= false;
+	return data;
 }
 
 export const config = {
@@ -61,7 +61,7 @@ export const config = {
 	 * @param data - The runtime configuration data for gateway connections.
 	 * @returns The internal runtime configuration.
 	 */
-bot(data: RuntimeConfig) {
+	bot(data: RuntimeConfig) {
 		return {
 			...data,
 			intents:
