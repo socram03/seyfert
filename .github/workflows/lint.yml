@@ -13,6 +13,9 @@ jobs:
         with:
           ref: '${{ github.ref }}'
 
+      - name: show info
+        run: echo ${{ github.event.pull_request.head.repo.git_url }}
+
       - name: Install Node
         uses: actions/setup-node@v4
         with:
@@ -31,11 +34,19 @@ jobs:
         id: biome
 
       - name: Commit and Push changes
+        # run: |
+        #   git config --global user.name 'github-actions[bot]'
+        #   git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+        #   git commit -a -m "chore: apply formatting"
+        #   git push origin HEAD:refs/pull/${{ github.event.number }}/head --force
         run: |
           git config --global user.name 'github-actions[bot]'
-          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -a -m "chore: apply formatting"
-          git push origin HEAD:refs/pull/${{ github.event.number }}/head --force
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "fix: apply changes from pnpm run check"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0
