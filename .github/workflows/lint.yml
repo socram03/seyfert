@@ -13,9 +13,6 @@ jobs:
         with:
           ref: '${{ github.ref }}'
 
-      - name: show ref
-        run: echo ${{ github.ref }}
-
       - name: Install Node
         uses: actions/setup-node@v4
         with:
