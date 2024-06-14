@@ -27,7 +27,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run Biome
-        run: pnpm run lint
+        run: pnpm run check
         id: biome
 
       - name: Commit and Push changes

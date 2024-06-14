@@ -28,8 +28,7 @@
 	},
 	"lint-staged": {
 		"*.ts": [
-			"biome check --write",
-			"biome format --write"
+			"biome check --write"
 		]
 	},
 	"devDependencies": {
