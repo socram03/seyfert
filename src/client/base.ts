@@ -223,7 +223,6 @@ export class BaseClient {
 					this.langs = undefined;
 				} else if (typeof handlers.langs === 'function') {
 					this.langs ??= new LangsHandler(this.logger);
-					this.langs.setHandlers({ callback: handlers.langs });
 				} else {
 					this.langs = handlers.langs;
 				}
@@ -285,23 +284,32 @@ export class BaseClient {
 		throw new Error('Function not implemented');
 	}
 
-	shouldUploadCommands(cachePath: string) {
+	private shouldUploadCommands(cachePath: string) {
 		return this.commands!.shouldUpload(cachePath).then(async should => {
 			if (should) await promises.writeFile(cachePath, JSON.stringify(this.commands!.values.map(x => x.toJSON())));
 			return should;
 		});
 	}
 
-	async uploadCommands(applicationId?: string) {
+	async uploadCommands({ applicationId, cachePath }: { applicationId?: string; cachePath?: string } = {}) {
 		applicationId ??= await this.getRC().then(x => x.applicationId ?? this.applicationId);
 		BaseClient.assertString(applicationId, 'applicationId is not a string');
 
 		const commands = this.commands!.values;
 		const filter = filterSplit(commands, command => !command.guildId);
 
-		await this.proxy.applications(applicationId).commands.put({
-			body: filter.expect.filter(cmd => !('ignore' in cmd) || cmd.ignore !== IgnoreCommand.Slash).map(x => x.toJSON()),
-		});
+		if (!cachePath || (cachePath && (await this.shouldUploadCommands(cachePath))))
+			await this.proxy
+				.applications(applicationId)
+				.commands.put({
+					body: filter.expect
+						.filter(cmd => !('ignore' in cmd) || cmd.ignore !== IgnoreCommand.Slash)
+						.map(x => x.toJSON()),
+				})
+				.catch(async e => {
+					if (cachePath) await promises.unlink(cachePath);
+					throw e;
+				});
 
 		const guilds = new Set<string>();
 
@@ -492,7 +500,7 @@ export interface ServicesOptions {
 	handlers?: {
 		components?: ComponentHandler | ComponentHandler['callback'];
 		commands?: CommandHandler;
-		langs?: LangsHandler | LangsHandler['callback'];
+		langs?: LangsHandler;
 	};
 	handleCommand?: typeof HandleCommand;
 }
