@@ -10,7 +10,9 @@ import type {
 } from '../../common';
 import { DiscordEpoch } from '../../common';
 import type { EmojiResolvable } from '../../common/types/resolvables';
-import { ActionRow, Embed, PollBuilder, resolveAttachment, type RawFile, type UsingClient } from '../..';
+import type { RawFile } from '../../api';
+import type { UsingClient } from '../../commands';
+import { ActionRow, Embed, PollBuilder, resolveAttachment } from '../../builders';
 
 /** * Convert a timestamp to a snowflake. * @param timestamp The timestamp to convert. * @returns The snowflake. */
 export function snowflakeToTimestamp(id: string): bigint {
