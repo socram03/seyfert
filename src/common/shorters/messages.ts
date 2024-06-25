@@ -4,22 +4,18 @@ import type {
 	RESTPostAPIChannelMessagesThreadsJSONBody,
 } from 'discord-api-types/v10';
 import { resolveFiles } from '../../builders';
-import { MessagesMethods } from '../../structures';
 
 import type { MessageCreateBodyRequest, MessageUpdateBodyRequest } from '../types/write';
 import { BaseShorter } from './base';
 import type { ValidAnswerId } from '../../api/Routes/channels';
 import { Transformers } from '../../client/transformers';
+import { createMessagePayload } from '../../structures/extra/functions';
 
 export class MessageShorter extends BaseShorter {
 	async write(channelId: string, { files, ...body }: MessageCreateBodyRequest) {
-		const parsedFiles = files ? await resolveFiles(files) : [];
+		const parsedFiles = files ? await resolveFiles(files) : undefined;
 
-		const transformedBody = MessagesMethods.transformMessageBody<RESTPostAPIChannelMessageJSONBody>(
-			body,
-			parsedFiles,
-			this.client,
-		);
+		const transformedBody = createMessagePayload<RESTPostAPIChannelMessageJSONBody>(body, parsedFiles, this.client);
 		return this.client.proxy
 			.channels(channelId)
 			.messages.post({
@@ -33,12 +29,12 @@ export class MessageShorter extends BaseShorter {
 	}
 
 	async edit(messageId: string, channelId: string, { files, ...body }: MessageUpdateBodyRequest) {
-		const parsedFiles = files ? await resolveFiles(files) : [];
+		const parsedFiles = files ? await resolveFiles(files) : undefined;
 		return this.client.proxy
 			.channels(channelId)
 			.messages(messageId)
 			.patch({
-				body: MessagesMethods.transformMessageBody<RESTPatchAPIChannelMessageJSONBody>(body, parsedFiles, this.client),
+				body: createMessagePayload<RESTPatchAPIChannelMessageJSONBody>(body, parsedFiles, this.client),
 				files: parsedFiles,
 			})
 			.then(async message => {

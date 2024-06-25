@@ -1,5 +1,6 @@
 import { BaseInteraction, resolveFiles, type ReplyInteractionBody, Modal } from '../..';
 import { Transformers } from '../../client/transformers';
+import { createMessagePayload } from '../../structures/extra/functions';
 import type { InteractionMessageUpdateBodyRequest, MessageWebhookCreateBodyRequest } from '../types/write';
 import { BaseShorter } from './base';
 
@@ -40,7 +41,7 @@ export class InteractionShorter extends BaseShorter {
 			.webhooks(this.client.applicationId)(token)
 			.messages(messageId)
 			.patch({
-				body: BaseInteraction.transformBody(data, parsedFiles, this.client),
+				body: createMessagePayload(data, parsedFiles, this.client),
 				files: parsedFiles,
 			});
 		return Transformers.WebhookMessage(this.client, apiMessage, this.client.applicationId, token);
@@ -67,7 +68,7 @@ export class InteractionShorter extends BaseShorter {
 		const apiMessage = await this.client.proxy
 			.webhooks(this.client.applicationId)(token)
 			.post({
-				body: BaseInteraction.transformBody(body, parsedFiles, this.client),
+				body: createMessagePayload(body, parsedFiles, this.client),
 				files: parsedFiles,
 			});
 		return Transformers.WebhookMessage(this.client, apiMessage, this.client.applicationId, token);

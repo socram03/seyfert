@@ -35,19 +35,16 @@ import {
 	InteractionType,
 	type MessageFlags,
 	type RESTPostAPIInteractionCallbackJSONBody,
-	type RESTAPIAttachment,
 } from 'discord-api-types/v10';
 import { mix } from 'ts-mixer';
 import type { RawFile } from '../api';
-import { ActionRow, Embed, Modal, PollBuilder, resolveAttachment, resolveFiles } from '../builders';
+import { ActionRow, Modal, resolveFiles } from '../builders';
 import type { ContextOptionsResolved, UsingClient } from '../commands';
 import type { ObjectToLower, OmitInsert, ToClass, When } from '../common';
 import type {
 	ComponentInteractionMessageUpdate,
 	InteractionCreateBodyRequest,
 	InteractionMessageUpdateBodyRequest,
-	MessageCreateBodyRequest,
-	MessageUpdateBodyRequest,
 	MessageWebhookCreateBodyRequest,
 	ModalCreateBodyRequest,
 } from '../common/types/write';
@@ -64,6 +61,7 @@ import {
 	type WebhookMessageStructure,
 	type OptionResolverStructure,
 } from '../client/transformers';
+import { createMessagePayload } from './extra/functions';
 
 export type ReplyInteractionBody =
 	| { type: InteractionResponseType.Modal; data: ModalCreateBodyRequest }
@@ -133,27 +131,9 @@ export class BaseInteraction<
 				return body;
 			case InteractionResponseType.ChannelMessageWithSource:
 			case InteractionResponseType.UpdateMessage: {
-				const poll = (body as InteractionCreateBodyRequest).poll;
-				return {
-					type: body.type,
-					//@ts-ignore
-					data: {
-						//@ts-ignore
-						allowed_mentions: self.options?.allowedMentions,
-						...(body.data ?? {}),
-						//@ts-ignore
-						components: body.data?.components?.map(x => (x instanceof ActionRow ? x.toJSON() : x)),
-						embeds: body.data?.embeds?.map(x => (x instanceof Embed ? x.toJSON() : x)),
-						attachments:
-							body.data && 'attachments' in body.data
-								? body.data.attachments?.map((x, i) => ({ id: i, ...resolveAttachment(x) }))
-								: (files?.map((x, id) => ({
-										id,
-										filename: x.name,
-									})) as RESTAPIAttachment[]),
-						poll: poll ? (poll instanceof PollBuilder ? poll.toJSON() : poll) : undefined,
-					},
-				};
+				const { type, ...payload } = body;
+				// @ts-ignore
+				return { type: type, data: createMessagePayload(payload, self, files) };
 			}
 			case InteractionResponseType.Modal:
 				return {
@@ -175,33 +155,6 @@ export class BaseInteraction<
 			default:
 				return body;
 		}
-	}
-
-	static transformBody<T>(
-		body:
-			| InteractionMessageUpdateBodyRequest
-			| MessageUpdateBodyRequest
-			| MessageCreateBodyRequest
-			| MessageWebhookCreateBodyRequest,
-		files: RawFile[] | undefined,
-		self: UsingClient,
-	) {
-		const poll = (body as MessageWebhookCreateBodyRequest).poll;
-
-		return {
-			allowed_mentions: self.options?.allowedMentions,
-			attachments:
-				'attachments' in body
-					? body.attachments?.map((x, i) => ({ id: i, ...resolveAttachment(x) }))
-					: (files?.map((x, id) => ({
-							id,
-							filename: x.name,
-						})) as RESTAPIAttachment[]),
-			...body,
-			components: body.components?.map(x => (x instanceof ActionRow ? x.toJSON() : x)),
-			embeds: body?.embeds?.map(x => (x instanceof Embed ? x.toJSON() : x)),
-			poll: poll ? (poll instanceof PollBuilder ? poll.toJSON() : poll) : undefined,
-		} as T;
 	}
 
 	private async matchReplied(body: ReplyInteractionBody) {
