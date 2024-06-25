@@ -5,10 +5,13 @@ import type {
 	RESTPostAPIWebhookWithTokenJSONBody,
 } from 'discord-api-types/v10';
 import { resolveFiles } from '../../builders';
-import type { MessageWebhookMethodEditParams, MessageWebhookMethodWriteParams } from '../../structures';
+import {
+	MessagesMethods,
+	type MessageWebhookMethodEditParams,
+	type MessageWebhookMethodWriteParams,
+} from '../../structures';
 import { BaseShorter } from './base';
 import { Transformers } from '../../client/transformers';
-import { createMessagePayload } from '../../structures/extra/functions';
 
 export class WebhookShorter extends BaseShorter {
 	async create(channelId: string, body: RESTPostAPIChannelWebhookJSONBody) {
@@ -80,7 +83,11 @@ export class WebhookShorter extends BaseShorter {
 	async writeMessage(webhookId: string, token: string, { body: data, ...payload }: MessageWebhookMethodWriteParams) {
 		const { files, ...body } = data;
 		const parsedFiles = files ? await resolveFiles(files) : undefined;
-		const transformedBody = createMessagePayload<RESTPostAPIWebhookWithTokenJSONBody>(body, parsedFiles, this.client);
+		const transformedBody = MessagesMethods.makeMessagePaload<RESTPostAPIWebhookWithTokenJSONBody>(
+			body,
+			parsedFiles,
+			this.client,
+		);
 		return this.client.proxy
 			.webhooks(webhookId)(token)
 			.post({ ...payload, files: parsedFiles, body: transformedBody })
@@ -102,7 +109,11 @@ export class WebhookShorter extends BaseShorter {
 	) {
 		const { files, ...body } = data;
 		const parsedFiles = files ? await resolveFiles(files) : undefined;
-		const transformedBody = createMessagePayload<RESTPostAPIWebhookWithTokenJSONBody>(body, parsedFiles, this.client);
+		const transformedBody = MessagesMethods.makeMessagePaload<RESTPostAPIWebhookWithTokenJSONBody>(
+			body,
+			parsedFiles,
+			this.client,
+		);
 		return this.client.proxy
 			.webhooks(webhookId)(token)
 			.messages(messageId)

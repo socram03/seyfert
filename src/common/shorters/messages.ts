@@ -9,13 +9,17 @@ import type { MessageCreateBodyRequest, MessageUpdateBodyRequest } from '../type
 import { BaseShorter } from './base';
 import type { ValidAnswerId } from '../../api/Routes/channels';
 import { Transformers } from '../../client/transformers';
-import { createMessagePayload } from '../../structures/extra/functions';
+import { MessagesMethods } from '../../structures';
 
 export class MessageShorter extends BaseShorter {
 	async write(channelId: string, { files, ...body }: MessageCreateBodyRequest) {
 		const parsedFiles = files ? await resolveFiles(files) : undefined;
 
-		const transformedBody = createMessagePayload<RESTPostAPIChannelMessageJSONBody>(body, parsedFiles, this.client);
+		const transformedBody = MessagesMethods.makeMessagePaload<RESTPostAPIChannelMessageJSONBody>(
+			body,
+			parsedFiles,
+			this.client,
+		);
 		return this.client.proxy
 			.channels(channelId)
 			.messages.post({
@@ -34,7 +38,7 @@ export class MessageShorter extends BaseShorter {
 			.channels(channelId)
 			.messages(messageId)
 			.patch({
-				body: createMessagePayload<RESTPatchAPIChannelMessageJSONBody>(body, parsedFiles, this.client),
+				body: MessagesMethods.makeMessagePaload<RESTPatchAPIChannelMessageJSONBody>(body, parsedFiles, this.client),
 				files: parsedFiles,
 			})
 			.then(async message => {

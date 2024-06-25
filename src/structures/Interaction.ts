@@ -35,16 +35,18 @@ import {
 	InteractionType,
 	type MessageFlags,
 	type RESTPostAPIInteractionCallbackJSONBody,
+	type RESTAPIAttachment,
 } from 'discord-api-types/v10';
 import { mix } from 'ts-mixer';
 import type { RawFile } from '../api';
-import { ActionRow, Modal, resolveFiles } from '../builders';
+import { ActionRow, Embed, Modal, PollBuilder, resolveAttachment, resolveFiles } from '../builders';
 import type { ContextOptionsResolved, UsingClient } from '../commands';
 import type { ObjectToLower, OmitInsert, ToClass, When } from '../common';
 import type {
 	ComponentInteractionMessageUpdate,
 	InteractionCreateBodyRequest,
 	InteractionMessageUpdateBodyRequest,
+	MessageCreateBodyRequest,
 	MessageWebhookCreateBodyRequest,
 	ModalCreateBodyRequest,
 } from '../common/types/write';
@@ -61,7 +63,7 @@ import {
 	type WebhookMessageStructure,
 	type OptionResolverStructure,
 } from '../client/transformers';
-import { createMessagePayload } from './extra/functions';
+import type { MessagePayloads } from './extra/functions';
 
 export type ReplyInteractionBody =
 	| { type: InteractionResponseType.Modal; data: ModalCreateBodyRequest }
@@ -133,7 +135,7 @@ export class BaseInteraction<
 			case InteractionResponseType.UpdateMessage: {
 				const { type, ...payload } = body;
 				// @ts-ignore
-				return { type: type, data: createMessagePayload(payload, self, files) };
+				return { type: type, data: BaseInteraction.makeMessagePaload(payload, self, files) };
 			}
 			case InteractionResponseType.Modal:
 				return {
@@ -155,6 +157,32 @@ export class BaseInteraction<
 			default:
 				return body;
 		}
+	}
+
+	static makeMessagePaload<T>(body: MessagePayloads, files: RawFile[] | undefined, self: UsingClient): T {
+		const poll = (body as MessageCreateBodyRequest).poll;
+
+		const allow = {
+			allowed_mentions: self.options?.allowedMentions,
+			...body,
+			components: body.components?.map(x => (x instanceof ActionRow ? x.toJSON() : x)) ?? undefined,
+			embeds: body.embeds?.map(x => (x instanceof Embed ? x.toJSON() : x)) ?? undefined,
+			poll: poll ? (poll instanceof PollBuilder ? poll.toJSON() : poll) : undefined,
+		};
+
+		if ('attachment' in body) {
+			allow.attachments =
+				body.attachments?.map((x, i) => ({
+					id: i,
+					...resolveAttachment(x),
+				})) ?? undefined;
+		} else if (files?.length) {
+			allow.attachments = files?.map((x, id) => ({
+				id,
+				filename: x.name,
+			})) as RESTAPIAttachment[];
+		}
+		return allow as unknown as T;
 	}
 
 	private async matchReplied(body: ReplyInteractionBody) {
