@@ -1,9 +1,16 @@
 import { FormattingPatterns } from 'discord-api-types/globals';
-import type { APIPartialEmoji } from 'discord-api-types/v10';
+import type { APIPartialEmoji, RESTAPIAttachment } from 'discord-api-types/v10';
 import type { Cache } from '../../cache';
-import type { TypeArray } from '../../common';
+import type {
+	InteractionMessageUpdateBodyRequest,
+	MessageCreateBodyRequest,
+	MessageUpdateBodyRequest,
+	MessageWebhookCreateBodyRequest,
+	TypeArray,
+} from '../../common';
 import { DiscordEpoch } from '../../common';
 import type { EmojiResolvable } from '../../common/types/resolvables';
+import { ActionRow, Embed, PollBuilder, resolveAttachment, type RawFile, type UsingClient } from '../..';
 
 /** * Convert a timestamp to a snowflake. * @param timestamp The timestamp to convert. * @returns The snowflake. */
 export function snowflakeToTimestamp(id: string): bigint {
@@ -68,3 +75,35 @@ export function hasProps<T extends Record<any, any>>(target: T, props: TypeArray
 	}
 	return true;
 }
+
+export function createMessagePayload<T>(body: MessagePayloads, files: RawFile[] | undefined, self: UsingClient): T {
+	const poll = (body as MessageCreateBodyRequest).poll;
+
+	const allow = {
+		allowed_mentions: self.options?.allowedMentions,
+		...body,
+		components: body.components?.map(x => (x instanceof ActionRow ? x.toJSON() : x)) ?? undefined,
+		embeds: body.embeds?.map(x => (x instanceof Embed ? x.toJSON() : x)) ?? undefined,
+		poll: poll ? (poll instanceof PollBuilder ? poll.toJSON() : poll) : undefined,
+	};
+
+	if ('attachment' in body) {
+		allow.attachments =
+			body.attachments?.map((x, i) => ({
+				id: i,
+				...resolveAttachment(x),
+			})) ?? undefined;
+	} else if (files?.length) {
+		allow.attachments = files?.map((x, id) => ({
+			id,
+			filename: x.name,
+		})) as RESTAPIAttachment[];
+	}
+	return allow as unknown as T;
+}
+
+export type MessagePayloads =
+	| InteractionMessageUpdateBodyRequest
+	| MessageUpdateBodyRequest
+	| MessageCreateBodyRequest
+	| MessageWebhookCreateBodyRequest;

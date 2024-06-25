@@ -1,7 +1,6 @@
 import {
 	ChannelFlags,
 	ChannelType,
-	type RESTAPIAttachment,
 	VideoQualityMode,
 	type APIChannelBase,
 	type APIDMChannel,
@@ -26,7 +25,6 @@ import {
 	type ThreadAutoArchiveDuration,
 } from 'discord-api-types/v10';
 import { mix } from 'ts-mixer';
-import { ActionRow, Embed, PollBuilder, resolveAttachment } from '../builders';
 import type { UsingClient } from '../commands';
 import type {
 	EmojiResolvable,
@@ -41,7 +39,7 @@ import type { GuildMember } from './GuildMember';
 import type { GuildRole } from './GuildRole';
 import { DiscordBase } from './extra/DiscordBase';
 import { channelLink } from './extra/functions';
-import { Collection, Formatter, type RawFile } from '..';
+import { Collection, Formatter } from '..';
 import {
 	type BaseChannelStructure,
 	type BaseGuildChannelStructure,
@@ -272,31 +270,6 @@ export class MessagesMethods extends DiscordBase {
 			set: (messageId: string, reason?: string) => ctx.client.channels.setPin(messageId, ctx.channelId, reason),
 			delete: (messageId: string, reason?: string) => ctx.client.channels.deletePin(messageId, ctx.channelId, reason),
 		};
-	}
-
-	static transformMessageBody<T>(
-		body: MessageCreateBodyRequest | MessageUpdateBodyRequest,
-		files: RawFile[] | undefined,
-		self: UsingClient,
-	) {
-		const poll = (body as MessageCreateBodyRequest).poll;
-		return {
-			allowed_mentions: self.options?.allowedMentions,
-			...body,
-			components: body.components?.map(x => (x instanceof ActionRow ? x.toJSON() : x)) ?? undefined,
-			embeds: body.embeds?.map(x => (x instanceof Embed ? x.toJSON() : x)) ?? undefined,
-			attachments:
-				'attachments' in body
-					? body.attachments?.map((x, i) => ({
-							id: i,
-							...resolveAttachment(x),
-						})) ?? undefined
-					: (files?.map((x, id) => ({
-							id,
-							filename: x.name,
-						})) as RESTAPIAttachment[]),
-			poll: poll ? (poll instanceof PollBuilder ? poll.toJSON() : poll) : undefined,
-		} as T;
 	}
 }
 
