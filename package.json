@@ -12,7 +12,7 @@
 	"scripts": {
 		"build": "npm run clean && tsc --outDir ./lib",
 		"prepublishOnly": "npm run build",
-		"prepare": "npm run build && husky",
+		"prepare": "tsc --outDir ./lib && husky",
 		"lint": "biome lint --write ./src",
 		"format": "biome format --write ./src",
 		"clean": "rimraf ./lib",
